@@ -148,8 +148,55 @@
                 throw new Error(error.message);
             }
         }
+        function ColorLuminance(hex, lum) {
+
+            // validate hex string
+            hex = String(hex).replace(/[^0-9a-f]/gi, '');
+            if (hex.length < 6) {
+                hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+            }
+            lum = lum || 0;
+
+            // convert to decimal and change luminosity
+            var rgb = "#", c, i;
+            for (i = 0; i < 3; i++) {
+                c = parseInt(hex.substr(i*2,2), 16);
+                c = Math.round(Math.min(Math.max(0, c + (c * lum)), 255)).toString(16);
+                rgb += ("00"+c).substr(c.length);
+            }
+
+            return rgb;
+        }
+
+        function applyStylesFromParams(params) {
+            const darkMode = params.get('DarkMode') === 'true'; 
+            const backgroundColor = params.get('Background'); 
+            const textColor = params.get('Textcolor'); 
+            let dynamicCSS = '';
+            if (darkMode) {
+                dynamicCSS += `
+                    body { background-color: #333; color: #ffffff; }
+                    .profile-card, .activity, .profile-info h2, .profile-info p {
+                        background-color: #444; 
+                        color: #ffffff;
+                    }
+                    .profile-info p,.activity {
+                        background-color: ${ColorLuminance("#444",-0.1)};
+                    }
+                    .status {
+                        color: #ffffff;
+                    }
+                `;
+            }
+
+            const styleTag = document.createElement('style');
+            styleTag.innerHTML = dynamicCSS;
+            document.head.appendChild(styleTag);
+    }
+
+
         function renderProfileCard(data, isEmbedMode = false) {
-            const { discord_user: user, discord_status: status, spotify } = data;
+            const { discord_user: user, discord_status: status, spotify,activities } = data;
             const statusColors = {
                 online: 'online',
                 idle: 'idle',
@@ -167,15 +214,28 @@
                    </div>`
                 : '';
 
-            const embedMarkup = `
-                <div class="profile-card">
-                    <img src="https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png" alt="${user.username}'s avatar">
-                    <div class="profile-info">
-                        <h2>${user.username}#${user.discriminator}</h2>
-                        <p>Status: <span class="status ${statusColors[status]}">${status.charAt(0).toUpperCase() + status.slice(1)}</span></p>
-                    </div>
-                </div>
-            `;
+
+        const activityMarkup = activities
+        // activity.id
+        // activity.application_id
+        .filter(activity => activity.name !== 'Spotify')
+        .map(activity => `
+            <div class="activity">
+                <p><strong>Activity:</strong> ${activity.name}</p>
+                ${activity.timestamps?.start ? `
+                <p>Started: ${new Date(activity.timestamps.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} | 
+                Elapsed: ${(() => { 
+                const elapsed = Date.now() - activity.timestamps.start; 
+                const hours = Math.floor(elapsed / (1000 * 60 * 60)); 
+                const minutes = Math.floor((elapsed % (1000 * 60 * 60)) / (1000 * 60)); 
+                const seconds = Math.floor((elapsed % (1000 * 60)) / 1000); 
+                return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`; 
+                })()}</p>` 
+            : ''}
+            </div>
+            `).join('');
+
+
 
             const fullMarkup = `
                 <div class="profile-card">
@@ -184,10 +244,11 @@
                         <h2>${user.global_name}</h2>
                         <p>Status: <span class="status ${statusColors[status]}">${status.charAt(0).toUpperCase() + status.slice(1)}</span></p>
                         ${spotifyMarkup}
+                        ${activityMarkup}
                     </div>
                 </div>
             `;
-
+            console.log(data)
             document.getElementById('output').innerHTML = fullMarkup;
 			updateSpotifySlider(spotify)
         }
@@ -230,6 +291,7 @@
                     }, 500);
                 } else {
                     document.getElementById('output').textContent = `Failed to fetch data: ${data.error}`;
+                    
                 }
             } catch (error) {
                 document.getElementById('output').textContent = `Failed to fetch data: ${error.message}`;
@@ -238,6 +300,7 @@
 
         // Auto-fetch if ID is provided in the URL
         const params = new URLSearchParams(window.location.search);
+        applyStylesFromParams(params)
         const userIdFromURL = params.get('id');
         if (userIdFromURL) {
             userIdMain = userIdFromURL
