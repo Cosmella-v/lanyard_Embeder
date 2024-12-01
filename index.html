@@ -163,7 +163,9 @@
             progressElement.style.width = `${progress}%`;
             if (!percentageElement) {return true}
             percentageElement.textContent = `       ${Math.round(progress.toFixed(1))}% / 100%     `;
-
+            if ((elapsed / duration) > 1) {
+                updateSlider(userIdMain)
+            }
             return true
         }
 
