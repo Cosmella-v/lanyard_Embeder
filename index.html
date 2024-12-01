@@ -241,6 +241,10 @@
         const params = new URLSearchParams(window.location.search);
         const userIdFromURL = params.get('id');
         if (userIdFromURL) {
+		document.querySelector("h1").remove();
+            document.querySelector("p").remove();
+            document.querySelector(".input-group").remove();
+            document.querySelector("#fetchData").remove();
             userIdMain = userIdFromURL
             const embedMode = true;
             fetchLanyardData(userIdFromURL)
