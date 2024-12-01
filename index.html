@@ -241,17 +241,17 @@
             if (backgroundColor) {
                  dynamicCSS += `
                   .profile-card, .activity, .profile-info h2, .profile-info p {
-                        background-color: #${backgroundColor}; 
+                        background-color: ${ColorLuminance("#"+backgroundColor,.25) }; 
                     }
                     .profile-card { 
-                        background-color: ${hexToRGB("#"+backgroundColor,0.8)}; 
+                        background-color: ${hexToRGB(ColorLuminance("#"+backgroundColor,-0.15),0.8 )}; 
                     }
                     .profile-info p,.activity, .profile-info h2 {
-                        background-color: ${ColorLuminance("#"+backgroundColor,-0.1)};
+                        background-color: ${ColorLuminance("#"+backgroundColor,-0.2)};
                     }
-                    body { background-color: ${ColorLuminance("#"+backgroundColor,-0.25) }; color: #ffffff; }
+                    body { background-color: #${backgroundColor}; color: #ffffff; }
                     `;
-            }
+            } // ${ColorLuminance("#"+backgroundColor,-0.25) }
 
 
             const styleTag = document.createElement('style');
