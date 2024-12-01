@@ -330,7 +330,7 @@ async function updateActivityCounters(activities) {
                     if (!shouldContinue) {
                         clearInterval(intervalId);
                     }
-                    }, 1000);
+                    }, 5000);
                 } else {
                     document.getElementById('output').textContent = `Failed to fetch data: ${data.error}`;
                     
@@ -360,7 +360,7 @@ async function updateActivityCounters(activities) {
                             if (!shouldContinue) {
                                 clearInterval(intervalId);
                             }
-                        }, 1000);
+                        }, 5000);
                     } else {
                         document.getElementById('output').textContent = `Failed to fetch data: ${data.error}`;
                     }
