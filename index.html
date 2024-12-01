@@ -112,7 +112,6 @@
 </head>
 <body>
     <h1>Discord Lanyard Viewer</h1>
-    <p> You need to be in the server: https://discord.gg/lanyard for this to work <p>
     <p>To view a Discord user's presence, enter their user ID below or visit this page with <code>?id=USER_ID</code>.</p>
 
     <div class="input-group">
@@ -241,12 +240,12 @@
         const params = new URLSearchParams(window.location.search);
         const userIdFromURL = params.get('id');
         if (userIdFromURL) {
-		document.querySelector("h1").remove();
+            userIdMain = userIdFromURL
+            const embedMode = true;
+            document.querySelector("h1").remove();
             document.querySelector("p").remove();
             document.querySelector(".input-group").remove();
             document.querySelector("#fetchData").remove();
-            userIdMain = userIdFromURL
-            const embedMode = true;
             fetchLanyardData(userIdFromURL)
                 .then(data => {
                     if (data.success) {
