@@ -112,11 +112,21 @@
 </head>
 <body>
     <h1>Discord Lanyard Viewer</h1>
-    <p>To view a Discord user's presence, enter their user ID below or visit this page with <code>?id=USER_ID</code>.</p>
-
+    <p>
+        The user MUST be in the discord server https://discord.gg/lanyard then <br>
+        to view a Discord user's presence, enter their user ID below or if you want to embed it into your site visit this page with <code>?id=USER_ID</code>, you can also toggle darkmode by ?DarkMode=true
+        a few example links are provided here: 
+            <br>
+                https://muhxd.github.io/lanyard_Embeder/?DarkMode=true <br>
+                https://muhxd.github.io/lanyard_Embeder/?id=764832218115080222 <br>
+                https://muhxd.github.io/lanyard_Embeder/?id=764832218115080222&DarkMode=true <br>
+            <br>
+        <bold>How to embed into your site?</bold><br>
+        &lt;iframe src="YourLinkHere" width="100%" height="350px" style="border: none; margin: 0; padding: 0; display: block; overflow: hidden;"&gt;&lt;/iframe&gt;
+    </p>
     <div class="input-group">
         <label for="userId">Enter your Discord User ID:</label>
-        <input type="text" id="userId" placeholder="e.g., 123456789012345678">
+        <input type="text" id="userId" placeholder="e.g., 764832218115080222">
     </div>
 
     <button id="fetchData">Fetch Lanyard Data</button>
@@ -195,76 +205,96 @@
             styleTag.innerHTML = dynamicCSS;
             document.head.appendChild(styleTag);
     }
+    let activityIntervals = {};
 
+async function updateActivityCounters(activities) {
+    if (!activities || activities.length === 0) return;
 
-        function renderProfileCard(data, isEmbedMode = false) {
-            const { discord_user: user, discord_status: status, spotify,activities } = data;
-            const statusColors = {
-                online: 'online',
-                idle: 'idle',
-                dnd: 'dnd',
-                offline: 'offline'
-            };
+    activities.forEach(activity => {
+        const activityId = activity.id;
+        if (!activity.timestamps || !activity.timestamps.start || activityIntervals[activityId]) return;
 
-            const spotifyMarkup = spotify
-                ? `<div class="activity">
-                     <p><strong>Listening to Spotify</strong></p>
-                     <p>Track: <strong>${spotify.song}</strong></p>
-                     <p>Artist: ${spotify.artist}</p>
-                     <img src="${spotify.album_art_url}" alt="Spotify Album Art">
-                     <div class="slider"><div class="progress" style="width: ${(spotify.timestamps.start / spotify.timestamps.end) * 100}%"></div></div>
-                   </div>`
-                : '';
+        const counterElement = document.querySelector(`.activity[data-id="${activityId}"] .elapsed-time`);
+        if (!counterElement) return;
 
+        const updateCounter = () => {
+            const elapsed = Date.now() - activity.timestamps.start;
+            const hours = Math.floor(elapsed / (1000 * 60 * 60));
+            const minutes = Math.floor((elapsed % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((elapsed % (1000 * 60)) / 1000);
+            counterElement.textContent = `Elapsed: ${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        };
+
+        updateCounter(); // Update immediately
+        activityIntervals[activityId] = setInterval(updateCounter, 1000);
+    });
+}
+
+    function renderProfileCard(data, isEmbedMode = false) {
+        const { discord_user: user, discord_status: status, spotify, activities } = data;
+        const statusColors = {
+            online: 'online',
+            idle: 'idle',
+            dnd: 'dnd',
+            offline: 'offline'
+        };
+
+        const spotifyMarkup = spotify
+            ? `<div class="activity">
+                <p><strong>Listening to Spotify</strong></p>
+                <p>Track: <strong>${spotify.song}</strong></p>
+                <p>Artist: ${spotify.artist}</p>
+                <img src="${spotify.album_art_url}" alt="Spotify Album Art">
+                <div class="slider"><div class="progress" style="width: ${(spotify.timestamps.start / spotify.timestamps.end) * 100}%"></div></div>
+            </div>`
+            : '';
 
         const activityMarkup = activities
-        // activity.id
-        // activity.application_id
-        .filter(activity => activity.name !== 'Spotify')
-        .map(activity => `
-            <div class="activity">
-                <p><strong>Activity:</strong> ${activity.name}</p>
-                ${activity.timestamps?.start ? `
-                <p>Started: ${new Date(activity.timestamps.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} | 
-                Elapsed: ${(() => { 
-                const elapsed = Date.now() - activity.timestamps.start; 
-                const hours = Math.floor(elapsed / (1000 * 60 * 60)); 
-                const minutes = Math.floor((elapsed % (1000 * 60 * 60)) / (1000 * 60)); 
-                const seconds = Math.floor((elapsed % (1000 * 60)) / 1000); 
-                return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`; 
-                })()}</p>` 
-            : ''}
-            </div>
+            .filter(activity => activity.name !== 'Spotify')
+            .map(activity => `
+                <div class="activity" data-id="${activity.id}">
+                    <p><strong>Activity:</strong> ${activity.name}</p>
+                    ${activity.timestamps?.start ? `
+                    <p>Started: ${new Date(activity.timestamps.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                    <p class="elapsed-time">Elapsed: --:--:--</p>` 
+                    : ''}
+                </div>
             `).join('');
 
-
-
-            const fullMarkup = `
-                <div class="profile-card">
-                    <img src="https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png" alt="${user.username}'s avatar">
-                    <div class="profile-info">
-                        <h2>${user.global_name}</h2>
-                        <p>Status: <span class="status ${statusColors[status]}">${status.charAt(0).toUpperCase() + status.slice(1)}</span></p>
-                        ${spotifyMarkup}
-                        ${activityMarkup}
-                    </div>
+        const fullMarkup = `
+            <div class="profile-card">
+                <img src="https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png" alt="${user.username}'s avatar">
+                <div class="profile-info">
+                    <h2>${user.global_name}</h2>
+                    <p>Status: <span class="status ${statusColors[status]}">${status.charAt(0).toUpperCase() + status.slice(1)}</span></p>
+                    ${spotifyMarkup}
+                    ${activityMarkup}
                 </div>
-            `;
-            document.getElementById('output').innerHTML = fullMarkup;
-			updateSpotifySlider(spotify)
-            if (Spotify != null) {
-                clearInterval(Spotify);
-                Spotify = null
-            }
-            Spotify = setInterval(() => {
-                const shouldContinues = updateSpotifySlider(spotify);
-                if (!shouldContinues) {
-                        clearInterval(Spotify);
-                        Spotify = null
-                    }
-            }, 300);
+            </div>
+        `;
 
+        document.getElementById('output').innerHTML = fullMarkup;
+
+        updateSpotifySlider(spotify);
+
+        Object.values(activityIntervals).forEach(intervalId => clearInterval(intervalId));
+        activityIntervals = {};
+
+        updateActivityCounters(activities);
+
+        if (Spotify != null) {
+            clearInterval(Spotify);
+            Spotify = null;
         }
+
+        Spotify = setInterval(() => {
+            const shouldContinues = updateSpotifySlider(spotify);
+            if (!shouldContinues) {
+                clearInterval(Spotify);
+                Spotify = null;
+            }
+        }, 300);
+    }
 
         async function updateSlider(id) {
             if (id != userIdMain) {
