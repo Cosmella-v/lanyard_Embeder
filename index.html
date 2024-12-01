@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,11 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Discord Lanyard API Viewer</title>
     <style>
+        body::-webkit-scrollbar { display: none; }
         body {
+            scrollbar-width: none;
             font-family: Arial, sans-serif;
             margin: 20px;
-            background-color: transparent;
-            color: #333;
+            background-color: rgba(255, 0, 0,0);
+            color: rgba(255, 255, 255, 0);
+            overflow: visible;
         }
         h1 {
             color: #5865F2;
@@ -47,11 +51,13 @@
             box-shadow: none;
             margin-top: 20px;
         }
+        .profile-card { background-color: rgba(255, 255, 255, 0.8); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Soft shadow */ }
         .profile-card img {
             width: 80px;
             height: 80px;
             border-radius: 50%;
             margin-right: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
         .profile-info {
             flex: 1;
@@ -91,10 +97,12 @@
         .activity img {
             display: block;
             margin: 10px 0;
-            width: 64px;
-            height: 64px;
+            width: 100px;
+            height: 100px;
             border-radius: 8px;
         }
+
+
         .slider {
             width: 100%;
             height: 5px;
@@ -138,6 +146,7 @@
 	async function updateSpotifySlider(spotify) {
             if (!spotify) return false;
             const progressElement = document.querySelector('.slider .progress');
+            const percentageElement = document.querySelector('.SpotifyOptions .percentage');
             if (!progressElement) return false;
 
             const duration = spotify.timestamps.end - spotify.timestamps.start;
@@ -145,6 +154,9 @@
             const progress = Math.min((elapsed / duration) * 100, 100);
 
             progressElement.style.width = `${progress}%`;
+            if (!percentageElement) {return true}
+            percentageElement.textContent = `       ${Math.round(progress.toFixed(1))}% / 100%     `;
+
             return true
         }
 
@@ -179,6 +191,18 @@
 
             return rgb;
         }
+        
+        function hexToRGB(hex, alpha) {
+            var r = parseInt(hex.slice(1, 3), 16),
+                g = parseInt(hex.slice(3, 5), 16),
+                b = parseInt(hex.slice(5, 7), 16);
+
+            if (alpha) {
+                return "rgba(" + r + ", " + g + ", " + b + ", " + alpha + ")";
+            } else {
+                return "rgb(" + r + ", " + g + ", " + b + ")";
+            }
+        }
 
         function applyStylesFromParams(params) {
             const darkMode = params.get('DarkMode') === 'true'; 
@@ -191,6 +215,13 @@
                     .profile-card, .activity, .profile-info h2, .profile-info p {
                         background-color: #444; 
                         color: #ffffff;
+                    }
+                    .slider .progress {
+                        background: #870bec;
+                    }
+                    .profile-card { 
+                        background-color: ${hexToRGB("#444",0.8)}; 
+                        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); 
                     }
                     .profile-info p,.activity {
                         background-color: ${ColorLuminance("#444",-0.1)};
@@ -240,17 +271,32 @@ async function updateActivityCounters(activities) {
         };
 
         const spotifyMarkup = spotify
-            ? `<div class="activity">
-                <p><strong>Listening to Spotify</strong></p>
-                <p>Track: <strong>${spotify.song}</strong></p>
-                <p>Artist: ${spotify.artist}</p>
-                <img src="${spotify.album_art_url}" alt="Spotify Album Art">
-                <div class="slider"><div class="progress" style="width: ${(spotify.timestamps.start / spotify.timestamps.end) * 100}%"></div></div>
-            </div>`
+            ? `<div class="activity" style="display: flex; align-items: center;">
+                    <img src="${spotify.album_art_url}" alt="Spotify Album Art" title="Listening to ${spotify.song}" style="width: 64px; height: 64px; border-radius: 8px; margin-right: 15px;">
+                    <div class="SpotifyOptions">
+                        <p><strong>Listening to Spotify</strong></p>
+                        <p>Track: <strong>${spotify.song}</strong></p>
+                        <p>Artist: <strong>${spotify.artist}</strong></p>
+                        <span class="percentage" font-size: 90%; background: ${hexToRGB("#d316f0",0.35)}; padding: 2px 5px; border-radius: 3px;">  ${Math.round(Math.min(((Date.now() - spotify.timestamps.start) / (spotify.timestamps.end - spotify.timestamps.start)) * 100, 100).toFixed(1))}%/100%     </span> 
+                    </div>
+                </div>
+                <div class="slider" style="position: relative; width: 100%; height: 5px; background: #ccc; border-radius: 3px; margin-top: 10px;"> 
+                    <div class="progress" style="height: 100%; border-radius: 3px;"> </div> 
+                 </div>
+                `
             : '';
 
+        let StatusTextFunny = activities 
+        .filter(activity => !(activity.type !== 4 && (activity.id !== 'custom' && activity.id !== 'Custom Status'))) 
+        .map(activity => ` <span class="status ${statusColors[status]}"> ${activity.state} (${status.charAt(0).toUpperCase() + status.slice(1)}) </span> `); 
+            if (StatusTextFunny.length === 0) { 
+                StatusTextFunny = [ `<span class="status ${statusColors[status]}"> ${status.charAt(0).toUpperCase() + status.slice(1)} </span>` ]; 
+            } 
+            else { 
+                StatusTextFunny = StatusTextFunny.join(''); 
+            }
         const activityMarkup = activities
-            .filter(activity => activity.name !== 'Spotify')
+            .filter(activity => activity.name !== 'Spotify' && (activity.type !== 4 && (activity.id !== 'custom' && activity.id !== 'Custom Status') ) )
             .map(activity => `
                 <div class="activity" data-id="${activity.id}">
                     <p><strong>Activity:</strong> ${activity.name}</p>
@@ -266,7 +312,12 @@ async function updateActivityCounters(activities) {
                 <img src="https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png" alt="${user.username}'s avatar">
                 <div class="profile-info">
                     <h2>${user.global_name}</h2>
-                    <p>Status: <span class="status ${statusColors[status]}">${status.charAt(0).toUpperCase() + status.slice(1)}</span></p>
+                    <div class="Status" data-id="!state">
+                        <p>
+                            <span style="font-weight: bold;"> Status: </span>
+                           ${StatusTextFunny}
+                        </p>
+                    </div>
                     ${spotifyMarkup}
                     ${activityMarkup}
                 </div>
