@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,8 +12,8 @@
             scrollbar-width: none;
             font-family: Arial, sans-serif;
             margin: 20px;
-            background-color: rgba(255, 0, 0,0);
-            color: rgba(255, 255, 255, 0);
+            background-color: rgba(255, 255, 255,1);
+            color: rgb(0, 0, 0);
             overflow: visible;
         }
         h1 {
@@ -65,6 +66,7 @@
         .profile-info h2 {
             margin: 0;
             color: #333;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
         .profile-info p {
             margin: 5px 0;
@@ -72,8 +74,8 @@
         }
         .status {
             font-weight: bold;
-            padding: 5px 10px;
-            border-radius: 5px;
+            padding: 1px 1px;
+            border-radius: 3px;
             color: white;
         }
         .status.online {
@@ -88,18 +90,23 @@
         .status.offline {
             background-color: #747f8d;
         }
+
         .activity {
-            margin-top: 10px;
-            padding: 10px;
-            border-radius: 8px;
+            padding: 5px;
+            border-radius: 2px;
+            margin-top: 5px;
+            margin-bottom: 5px;
             background-color: #f1f1f1;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
+
         .activity img {
             display: block;
             margin: 10px 0;
             width: 100px;
             height: 100px;
             border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
 
 
@@ -231,6 +238,21 @@
                     }
                 `;
             }
+            if (backgroundColor) {
+                 dynamicCSS += `
+                  .profile-card, .activity, .profile-info h2, .profile-info p {
+                        background-color: #${backgroundColor}; 
+                    }
+                    .profile-card { 
+                        background-color: ${hexToRGB("#"+backgroundColor,0.8)}; 
+                    }
+                    .profile-info p,.activity, .profile-info h2 {
+                        background-color: ${ColorLuminance("#"+backgroundColor,-0.1)};
+                    }
+                    body { background-color: ${ColorLuminance("#"+backgroundColor,-0.25) }; color: #ffffff; }
+                    `;
+            }
+
 
             const styleTag = document.createElement('style');
             styleTag.innerHTML = dynamicCSS;
