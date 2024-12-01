@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discord Lanyard API Viewer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: transparent;
+            color: #333;
+        }
+        h1 {
+            color: #5865F2;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #5865F2;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #4752c4;
+        }
+        .profile-card {
+            display: flex;
+            align-items: flex-start;
+            background-color: transparent;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: none;
+            margin-top: 20px;
+        }
+        .profile-card img {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            margin-right: 15px;
+        }
+        .profile-info {
+            flex: 1;
+        }
+        .profile-info h2 {
+            margin: 0;
+            color: #333;
+        }
+        .profile-info p {
+            margin: 5px 0;
+            color: #666;
+        }
+        .status {
+            font-weight: bold;
+            padding: 5px 10px;
+            border-radius: 5px;
+            color: white;
+        }
+        .status.online {
+            background-color: #43b581;
+        }
+        .status.idle {
+            background-color: #faa61a;
+        }
+        .status.dnd {
+            background-color: #f04747;
+        }
+        .status.offline {
+            background-color: #747f8d;
+        }
+        .activity {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            background-color: #f1f1f1;
+        }
+        .activity img {
+            display: block;
+            margin: 10px 0;
+            width: 64px;
+            height: 64px;
+            border-radius: 8px;
+        }
+        .slider {
+            width: 100%;
+            height: 5px;
+            background: #ccc;
+            border-radius: 3px;
+            position: relative;
+            margin-top: 10px;
+        }
+        .slider .progress {
+            height: 100%;
+            background: #43b581;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Discord Lanyard Viewer</h1>
+    <p>To view a Discord user's presence, enter their user ID below or visit this page with <code>?id=USER_ID</code>.</p>
+
+    <div class="input-group">
+        <label for="userId">Enter your Discord User ID:</label>
+        <input type="text" id="userId" placeholder="e.g., 123456789012345678">
+    </div>
+
+    <button id="fetchData">Fetch Lanyard Data</button>
+
+    <div id="output"></div>
+
+    <script>
+	async function updateSpotifySlider(spotify) {
+            if (!spotify) return;
+            const progressElement = document.querySelector('.slider .progress');
+            if (!progressElement) return;
+
+            const duration = spotify.timestamps.end - spotify.timestamps.start;
+            const elapsed = Date.now() - spotify.timestamps.start;
+            const progress = Math.min((elapsed / duration) * 100, 100);
+
+            progressElement.style.width = `${progress}%`;
+        }
+
+        async function fetchLanyardData(userId) {
+            const url = `https://api.lanyard.rest/v1/users/${userId}`;
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`Error: ${response.status} - ${response.statusText}`);
+                }
+                return await response.json();
+            } catch (error) {
+                throw new Error(error.message);
+            }
+        }
+        function renderProfileCard(data, isEmbedMode = false) {
+            const { discord_user: user, discord_status: status, spotify } = data;
+            const statusColors = {
+                online: 'online',
+                idle: 'idle',
+                dnd: 'dnd',
+                offline: 'offline'
+            };
+
+            const spotifyMarkup = spotify
+                ? `<div class="activity">
+                     <p><strong>Listening to Spotify</strong></p>
+                     <p>Track: <strong>${spotify.song}</strong></p>
+                     <p>Artist: ${spotify.artist}</p>
+                     <img src="${spotify.album_art_url}" alt="Spotify Album Art">
+                     <div class="slider"><div class="progress" style="width: ${(spotify.timestamps.start / spotify.timestamps.end) * 100}%"></div></div>
+                   </div>`
+                : '';
+
+            const embedMarkup = `
+                <div class="profile-card">
+                    <img src="https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png" alt="${user.username}'s avatar">
+                    <div class="profile-info">
+                        <h2>${user.username}#${user.discriminator}</h2>
+                        <p>Status: <span class="status ${statusColors[status]}">${status.charAt(0).toUpperCase() + status.slice(1)}</span></p>
+                    </div>
+                </div>
+            `;
+
+            const fullMarkup = `
+                <div class="profile-card">
+                    <img src="https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png" alt="${user.username}'s avatar">
+                    <div class="profile-info">
+                        <h2>${user.username}#${user.discriminator}</h2>
+                        <p>Status: <span class="status ${statusColors[status]}">${status.charAt(0).toUpperCase() + status.slice(1)}</span></p>
+                        ${spotifyMarkup}
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('output').innerHTML = fullMarkup;
+			updateSpotifySlider(spotify)
+        }
+
+        async function updateSlider(id) {
+            if (id != userIdMain) {
+                return false
+            }
+            try {
+                const data = await fetchLanyardData(id);
+                if (data.success) {
+                    renderProfileCard(data.data);
+                    return true
+                } else {
+                    //document.getElementById('output').textContent = `Failed to fetch data: ${data.error}`;
+                }
+            } catch (error) {
+                //document.getElementById('output').textContent = `Failed to fetch data: ${error.message}`;
+            }
+        }
+
+        let userIdMain = 0;
+       
+        document.getElementById('fetchData').addEventListener('click', async () => {
+            const userId = document.getElementById('userId').value.trim();
+            if (!userId) {
+                alert('Please enter a valid Discord User ID.');
+                return;
+            }
+            userIdMain = userId
+            try {
+                const data = await fetchLanyardData(userId);
+                if (data.success) {
+                    renderProfileCard(data.data);
+                    const intervalId = setInterval(() => {
+                    const shouldContinue = updateSlider(userId);
+                    if (!shouldContinue) {
+                        clearInterval(intervalId);
+                    }
+                    }, 1000);
+                } else {
+                    document.getElementById('output').textContent = `Failed to fetch data: ${data.error}`;
+                }
+            } catch (error) {
+                document.getElementById('output').textContent = `Failed to fetch data: ${error.message}`;
+            }
+        });
+
+        // Auto-fetch if ID is provided in the URL
+        const params = new URLSearchParams(window.location.search);
+        const userIdFromURL = params.get('id');
+        if (userIdFromURL) {
+            userIdMain = userIdFromURL
+            const embedMode = true;
+            fetchLanyardData(userIdFromURL)
+                .then(data => {
+                    if (data.success) {
+                        renderProfileCard(data.data, embedMode);
+                        const intervalId = setInterval(() => {
+                        const shouldContinue = updateSlider(userIdFromURL);
+                        if (!shouldContinue) {
+                            clearInterval(intervalId);
+                        }
+                        }, 1000);
+                    } else {
+                        document.getElementById('output').textContent = `Failed to fetch data: ${data.error}`;
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('output').textContent = `Failed to fetch data: ${error.message}`;
+                });
+        }
+    </script>
+</body>
+</html>
