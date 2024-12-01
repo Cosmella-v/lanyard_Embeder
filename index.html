@@ -227,7 +227,7 @@
                     if (!shouldContinue) {
                         clearInterval(intervalId);
                     }
-                    }, 1000);
+                    }, 500);
                 } else {
                     document.getElementById('output').textContent = `Failed to fetch data: ${data.error}`;
                 }
@@ -251,7 +251,7 @@
                         if (!shouldContinue) {
                             clearInterval(intervalId);
                         }
-                        }, 1000);
+                        }, 500);
                     } else {
                         document.getElementById('output').textContent = `Failed to fetch data: ${data.error}`;
                     }
