@@ -124,16 +124,18 @@
     <div id="output"></div>
 
     <script>
+    let Spotify = null
 	async function updateSpotifySlider(spotify) {
-            if (!spotify) return;
+            if (!spotify) return false;
             const progressElement = document.querySelector('.slider .progress');
-            if (!progressElement) return;
+            if (!progressElement) return false;
 
             const duration = spotify.timestamps.end - spotify.timestamps.start;
             const elapsed = Date.now() - spotify.timestamps.start;
             const progress = Math.min((elapsed / duration) * 100, 100);
 
             progressElement.style.width = `${progress}%`;
+            return true
         }
 
         async function fetchLanyardData(userId) {
@@ -248,9 +250,20 @@
                     </div>
                 </div>
             `;
-            console.log(data)
             document.getElementById('output').innerHTML = fullMarkup;
 			updateSpotifySlider(spotify)
+            if (Spotify != null) {
+                clearInterval(Spotify);
+                Spotify = null
+            }
+            Spotify = setInterval(() => {
+                const shouldContinues = updateSpotifySlider(spotify);
+                if (!shouldContinues) {
+                        clearInterval(Spotify);
+                        Spotify = null
+                    }
+            }, 300);
+
         }
 
         async function updateSlider(id) {
@@ -271,7 +284,6 @@
         }
 
         let userIdMain = 0;
-       
         document.getElementById('fetchData').addEventListener('click', async () => {
             const userId = document.getElementById('userId').value.trim();
             if (!userId) {
@@ -288,7 +300,7 @@
                     if (!shouldContinue) {
                         clearInterval(intervalId);
                     }
-                    }, 700);
+                    }, 1000);
                 } else {
                     document.getElementById('output').textContent = `Failed to fetch data: ${data.error}`;
                     
@@ -314,11 +326,11 @@
                     if (data.success) {
                         renderProfileCard(data.data, embedMode);
                         const intervalId = setInterval(() => {
-                        const shouldContinue = updateSlider(userIdFromURL);
-                        if (!shouldContinue) {
-                            clearInterval(intervalId);
-                        }
-                        }, 700);
+                            const shouldContinue = updateSlider(userIdFromURL);
+                            if (!shouldContinue) {
+                                clearInterval(intervalId);
+                            }
+                        }, 1000);
                     } else {
                         document.getElementById('output').textContent = `Failed to fetch data: ${data.error}`;
                     }
