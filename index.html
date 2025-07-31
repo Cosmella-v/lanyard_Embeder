@@ -147,6 +147,22 @@
     <button id="fetchData">Fetch Lanyard Data</button>
 
     <div id="output"></div>
+	<script>
+	  window.addEventListener("message", (event) => {
+	  // allow sites to inject custom css and js so they can change how it looks
+	    if (event.data.type === "inject-css") {
+	      const style = document.createElement("style");
+	      style.textContent = event.data.css;
+	      document.head.appendChild(style);
+	    }
+	
+	    if (event.data.type === "inject-js") {
+	      const script = document.createElement("script");
+	      script.textContent = event.data.js;
+	      document.body.appendChild(script);
+	    }
+	  });
+	</script>
 
     <script>
     let Spotify = null
